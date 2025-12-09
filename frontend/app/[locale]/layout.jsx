@@ -3,6 +3,7 @@ import { routing } from "@/i18n/routing";
 import { Geist, Geist_Mono } from "next/font/google";
 import { notFound } from "next/navigation";
 import "./globals.css";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,6 +32,7 @@ export default async function RootLayout({ children, params }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <Toaster />
       </body>
     </html>
   );

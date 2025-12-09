@@ -1,5 +1,13 @@
 "use client";
+import { useRouter } from "next/navigation";
+import axios from "axios";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 import {
   Form,
   FormControl,
@@ -8,12 +16,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import PhoneInput from "react-phone-number-input";
-import "react-phone-number-input/style.css";
-import { z } from "zod";
+import { baseURL } from "@/lib/secrets";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   firstName: z.string().min(3, {
@@ -29,12 +33,17 @@ const formSchema = z.object({
     return Number.isNaN(parsed) ? val : parsed;
   }, z.number().min(18, { message: "You must be at least 18" })),
   email: z.email(),
-  phone: z.string().min(1, { message: "Phone number is required" }),
+  phone: z
+    .string()
+    .min(1, { message: "Phone number is required" })
+    .max(15, { message: "Phone number must be 15 character" }),
   address: z.string().min(1, { message: "Address is required" }),
   password: z.string().min(6, { message: "Password must be 6 character" }),
 });
 
 const Page = () => {
+  const router = useRouter();
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -48,13 +57,30 @@ const Page = () => {
     },
   });
 
-  const onSubmit = (data) => {
-    console.log(data);
-    form.reset();
+  const onSubmit = async (data) => {
+    const { firstName, lastName, age, email, phone, address, password } = data;
+    try {
+      const res = await axios.post(`${baseURL}/api/auth/signup`, {
+        firstName: firstName,
+        lastName: lastName,
+        password: password,
+        age: age,
+        email: email,
+        phone: phone,
+        address: address,
+      });
+      toast.success("User Created");
+      router.push("/login");
+      form.reset();
+    } catch (error) {
+      if (error) {
+        toast.error("User already exist");
+      }
+    }
   };
 
   const onError = (errors) => {
-    console.log("VALIDATION ERRORS ❌", errors);
+    console.log("VALIDATION ERRORS", errors);
   };
 
   return (
@@ -154,7 +180,7 @@ const Page = () => {
               <FormItem>
                 <FormLabel>Address</FormLabel>
                 <FormControl>
-                  <Input name="email" {...field} placeholder="email" />
+                  <Input name="email" {...field} placeholder="address" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
