@@ -14,10 +14,23 @@ model User{
   firstName String
   lastName String
   age Int
-  email String @unique
+  email String @unique @id
   phone String
   address String
   password String  
 
   @@map(name: "users")
+}
+
+model Books{
+  id Int @default(autoincrement()) @unique 
+  title String @id
+  stars Int
+  description String
+  coverImageURL String?
+  cloudinaryPublicId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+@@map("books")
 }
