@@ -16,6 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { baseURL } from "@/lib/secrets";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   email: z.email(),
@@ -40,12 +41,17 @@ const Page = () => {
         email: email,
         password: password,
       });
-
+      const accessToken = res.data.accessToken;
+      if (!accessToken) {
+        toast.error("No Token recieved");
+        throw new Error("No token received");
+      }
       localStorage.setItem("token", accessToken);
       router.push("/");
       form.reset();
+      toast.success("Successfully Logged In");
     } catch (error) {
-      console.log(error || "something went wrong");
+      toast.error("Invalid Email or password");
     }
   };
 
