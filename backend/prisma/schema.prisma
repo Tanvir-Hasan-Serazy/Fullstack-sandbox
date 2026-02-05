@@ -7,30 +7,41 @@ datasource db {
   provider = "postgresql"
 }
 
-
-model User{
-  id Int @default(autoincrement())
+model User {
+  id        Int      @default(autoincrement())
   createdAt DateTime @default(now())
   firstName String
-  lastName String
-  age Int
-  email String @unique @id
-  phone String
-  address String
-  password String  
+  lastName  String
+  age       Int
+  email     String   @id @unique
+  phone     String
+  address   String
+  password  String
 
   @@map(name: "users")
 }
 
-model Books{
-  id Int @default(autoincrement()) @unique 
-  title String @id
-  stars Int
-  description String
-  coverImageURL String?
+model Books {
+  id                 Int      @unique @default(autoincrement())
+  title              String   @id
+  stars              Int
+  description        String
+  coverImageURL      String?
   cloudinaryPublicId String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-@@map("books")
+  @@map("books")
+}
+
+model NationalID {
+  id                 String  @id @unique @default(uuid())
+  name               String
+  gender             String
+  age                Int
+  address            String
+  bloodGroup         String
+  height             Int
+  imageURL           String?
+  cloudinaryPublicId String?
 }
