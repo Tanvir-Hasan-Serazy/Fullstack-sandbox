@@ -26,12 +26,15 @@ const formSchema = z.object({
   lastName: z.string().min(3, {
     message: "Last name must be at least 3 characters",
   }),
-  age: z.preprocess((val) => {
-    if (val === "" || val === undefined || val === null) return undefined;
-    if (typeof val === "number") return val;
-    const parsed = Number(val);
-    return Number.isNaN(parsed) ? val : parsed;
-  }, z.number().min(18, { message: "You must be at least 18" })),
+  age: z.preprocess(
+    (val) => {
+      if (val === "" || val === undefined || val === null) return undefined;
+      if (typeof val === "number") return val;
+      const parsed = Number(val);
+      return Number.isNaN(parsed) ? val : parsed;
+    },
+    z.number().min(18, { message: "You must be at least 18" }),
+  ),
   email: z.email(),
   phone: z
     .string()
