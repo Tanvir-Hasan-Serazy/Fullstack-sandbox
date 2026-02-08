@@ -35,7 +35,7 @@ model Books {
 }
 
 model NationalID {
-  id                 String  @id @unique @default(uuid())
+  id                 String   @id @unique @default(uuid())
   name               String
   gender             String
   age                Int
@@ -44,4 +44,8 @@ model NationalID {
   height             Int
   imageURL           String?
   cloudinaryPublicId String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("nationalId")
 }

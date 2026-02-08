@@ -18,3 +18,7 @@ export const uploadToCloudinary = (buffer) => {
     Readable.from(buffer).pipe(uploadStream);
   });
 };
+
+export const deleteFromCloudinary = (publicId) => {
+  return cloudinary.uploader.destroy(publicId);
+};
