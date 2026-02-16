@@ -45,32 +45,42 @@ idRouter.post("/id", upload.single("image"), async (req, res) => {
 
 idRouter.get("/id", async (req, res) => {
   try {
+    const sortBy = req.query.sortBy === "age" ? "age" : "createdAt";
+    const sortOrder = req.query.sortOrder === "asc" ? "asc" : "desc";
+
     const data = await prisma.nationalID.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: {
+        [sortBy]: sortOrder,
+      },
     });
+
     res.status(200).json({ success: true, data });
   } catch (error) {
-    res.status(400).json(error);
-    console.error(error, "Error fetching National IDs");
+    console.error("Error fetching National IDs:", error);
     res.status(500).json({ error: "Failed to get National IDs" });
   }
 });
 
-idRouter.get("/id/:id", async (req, res) => {
-  const { id } = req.params;
+// Filter
+idRouter.get("/id", async (req, res) => {
   try {
-    const data = await prisma.nationalID.findUnique({ where: { id } });
-    if (!data) {
-      res.status(400).json({ success: false, message: "Item not found" });
-    }
+    const { sortBy = "createdAt", sortOrder = "desc" } = req.query;
 
-    res.status(200).json({
-      data: data,
-      success: true,
+    // Validate sortBy field
+    const allowedFields = ["createdAt", "age"];
+    const field = allowedFields.includes(sortBy) ? sortBy : "createdAt";
+
+    // Validate sortOrder
+    const order = sortOrder === "asc" ? "asc" : "desc";
+
+    const data = await prisma.nationalID.findMany({
+      orderBy: { [field]: order }, // Sort by single field
     });
+
+    res.status(200).json({ success: true, data });
   } catch (error) {
-    console.error("Error getting data", error);
-    res.status(500).json({ success: false, message: "cannot get data" });
+    console.error("Error fetching National IDs", error);
+    res.status(500).json({ error: "Failed to get National IDs" });
   }
 });
 
