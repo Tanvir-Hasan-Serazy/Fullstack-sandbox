@@ -1,7 +1,9 @@
 import api from "./api";
 
-export const getNationalId = async () => {
-  const res = await api.get("/api/id");
+export const getNationalId = async (params = {}) => {
+  const res = await api.get("/api/id", {
+    params: params,
+  });
   return res.data;
 };
 

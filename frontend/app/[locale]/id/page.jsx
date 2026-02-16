@@ -1,17 +1,28 @@
 "use client";
 import React from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteUser, getNationalId } from "@/app/services/nationalId.service";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const page = () => {
   const queryClient = useQueryClient();
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["nationalId"],
-    queryFn: getNationalId,
+    queryKey: ["nationalId", sortBy, sortOrder],
+    queryFn: () => getNationalId({ sortBy, sortOrder }),
   });
 
   const mutation = useMutation({
@@ -27,6 +38,22 @@ const page = () => {
     mutation.mutate(id);
   };
 
+  const handleFilterChange = (value) => {
+    if (value === "createdAt-asc") {
+      setSortBy("createdAt");
+      setSortOrder("asc");
+    } else if (value === "createdAt-desc") {
+      setSortBy("createdAt");
+      setSortOrder("desc");
+    } else if (value === "age-asc") {
+      setSortBy("age");
+      setSortOrder("asc");
+    } else if (value === "age-desc") {
+      setSortBy("age");
+      setSortOrder("desc");
+    }
+  };
+
   if (isLoading) {
     return <p>Fetching National Id's</p>;
   }
@@ -37,7 +64,31 @@ const page = () => {
 
   return (
     <div className="p-4">
-      <h1 className="text-xl font-semibold">List of National ID:</h1>
+      <div className="flex justify-between items-center max-w-xl">
+        <h1 className="text-xl font-semibold">List of National ID:</h1>
+        <div>
+          <Select
+            onValueChange={handleFilterChange}
+            defaultValue="createdAt-desc"
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Sort By" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="createdAt-asc">
+                  Date (Oldest First)
+                </SelectItem>
+                <SelectItem value="createdAt-desc">
+                  Date (Newest First)
+                </SelectItem>
+                <SelectItem value="age-desc">Age (High to low)</SelectItem>
+                <SelectItem value="age-asc">Age (Low to high)</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
       {users?.map((user) => (
         <div
           className="p-4 m-4 border border-red-400 rounded-md max-w-xl flex justify-between items-center"
@@ -54,6 +105,7 @@ const page = () => {
               />
             </div>
             <p className="text-xl text-gray-700"> {user?.name}</p>
+            <p className="text-xl text-gray-700"> {user?.age}</p>
           </div>
           <div className="flex gap-4 items-center">
             <Link
