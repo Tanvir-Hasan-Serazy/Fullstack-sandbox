@@ -117,7 +117,6 @@ idRouter.put("/id/:id", upload.single("image"), async (req, res) => {
       }
       // Uploading new photo
       const uploadResult = await uploadToCloudinary(req.file.buffer);
-      console.log(updateData);
       updateData.imageURL = uploadResult.secure_url;
       updateData.cloudinaryPublicId = uploadResult.public_id;
     }
