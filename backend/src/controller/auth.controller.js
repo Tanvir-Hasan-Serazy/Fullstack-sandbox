@@ -1,77 +1,116 @@
+import { auth } from "../config/better-auth.js";
+import { uploadImage } from "../services/image.service.js";
 import { prisma } from "../prisma/client.js";
-import { hashSync, compareSync } from "bcrypt";
-import jwt from "jsonwebtoken";
-import { JWT_SECRET } from "../secrets.js";
 
-export const signup = async (req, res) => {
-  const { firstName, lastName, age, email, phone, address, password } =
-    req.body;
-
-  let user = await prisma.user.findUnique({ where: { email: email } });
-
+/**
+ * Custom registration endpoint that handles profile photo upload
+ * and then creates user via better-auth
+ */
+export const registerWithPhoto = async (req, res) => {
   try {
-    if (user) {
-      return res.status(409).json({
-        error: "User already exist",
+    const { name, email, password } = req.body;
+
+    // console.log("=== Registration Request ===");
+    // console.log("Body:", { name, email, password: "***" });
+    // console.log(
+    //   "File:",
+    //   req.file
+    //     ? {
+    //         fieldname: req.file.fieldname,
+    //         originalname: req.file.originalname,
+    //         mimetype: req.file.mimetype,
+    //         size: req.file.size,
+    //       }
+    //     : "No file uploaded",
+    // );
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: "Name, email, and password are required",
       });
     }
 
-    user = await prisma.user.create({
-      data: {
-        firstName: firstName,
-        lastName: lastName,
-        age: age,
+    let profilePhoto = null;
+    let profilePhotoId = null;
+
+    // Upload profile photo if provided
+    if (req.file) {
+      console.log("Starting image upload to Cloudinary...");
+      try {
+        const uploadResult = await uploadImage(
+          req.file.buffer,
+          "profile-photo",
+        );
+        profilePhoto = uploadResult.secure_url;
+        profilePhotoId = uploadResult.public_id;
+        console.log("Image uploaded successfully:", {
+          profilePhoto,
+          profilePhotoId,
+        });
+      } catch (uploadError) {
+        console.error("Image upload error:", uploadError);
+        return res.status(500).json({
+          success: false,
+          error: "Failed to upload profile photo",
+        });
+      }
+    } else {
+      console.log("No profile photo to upload");
+    }
+
+    // Create user with better-auth
+    console.log("Creating user with better-auth...");
+    const response = await auth.api.signUpEmail({
+      body: {
+        name: name,
         email: email,
-        phone: phone,
-        address: address,
-        password: hashSync(password, 10),
+        password: password,
       },
     });
 
-    return res.status(201).json({
-      message: "User created",
+    console.log("Better-auth response:", response);
+
+    // Update user with profile photo info if uploaded
+    if (profilePhoto && response.user) {
+      console.log("Updating user with profile photo...");
+      await prisma.user.update({
+        where: { id: response.user.id },
+        data: {
+          profilePhoto: profilePhoto,
+          profilePhotoId: profilePhotoId,
+          role: "SELF",
+        },
+      });
+      console.log("User updated with profile photo");
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      data: {
+        ...response,
+        user: {
+          ...response.user,
+          profilePhoto,
+          profilePhotoId,
+        },
+      },
     });
   } catch (error) {
-    res.status(500).json({
-      error: "Server error",
-    });
-  }
-};
+    console.error("User registration error:", error);
 
-export const login = async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    let user = await prisma.user.findUnique({ where: { email: email } });
-    if (!user) {
-      return res.status(404).json({
-        error: "User doesn't exist",
+    // Handle better-auth specific errors
+    if (error.message?.includes("already exists")) {
+      return res.status(409).json({
+        success: false,
+        error: "User with this email already exists",
       });
     }
 
-    const isPasswordValid = compareSync(password, user.password);
-
-    if (!isPasswordValid) {
-      return req.status(401).json({ error: "Incorrect password" });
-    }
-
-    const token = jwt.sign(
-      {
-        userId: user.id,
-      },
-      JWT_SECRET
-    );
-
-    return res.status(200).json({
-      message: "Login Successfully",
-      user: {
-        email: user.email,
-      },
-      accessToken: token,
-    });
-  } catch (error) {
-    res.status(401).json({
-      error: "Invalid credentials",
+    res.status(500).json({
+      success: false,
+      error: error.message || "Failed to register user",
     });
   }
 };
