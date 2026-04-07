@@ -1,13 +1,5 @@
 "use client";
-import { useRouter } from "next/navigation";
-import axios from "axios";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import PhoneInput from "react-phone-number-input";
-import "react-phone-number-input/style.css";
 import {
   Form,
   FormControl,
@@ -16,70 +8,114 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { baseURL } from "@/lib/secrets";
+import { Input } from "@/components/ui/input";
+import { useRegister } from "@/hooks/mutations/useRegister";
+import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Camera, X } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
+import { useDropzone } from "react-dropzone";
+import { useForm } from "react-hook-form";
+import "react-phone-number-input/style.css";
 import { toast } from "sonner";
+import { z } from "zod";
 
-const formSchema = z.object({
-  firstName: z.string().min(3, {
-    message: "First name must be at least 3 characters",
-  }),
-  lastName: z.string().min(3, {
-    message: "Last name must be at least 3 characters",
-  }),
-  age: z.preprocess(
-    (val) => {
-      if (val === "" || val === undefined || val === null) return undefined;
-      if (typeof val === "number") return val;
-      const parsed = Number(val);
-      return Number.isNaN(parsed) ? val : parsed;
-    },
-    z.number().min(18, { message: "You must be at least 18" }),
-  ),
-  email: z.email(),
-  phone: z
-    .string()
-    .min(1, { message: "Phone number is required" })
-    .max(15, { message: "Phone number must be 15 character" }),
-  address: z.string().min(1, { message: "Address is required" }),
-  password: z.string().min(6, { message: "Password must be 6 character" }),
-});
+const formSchema = z
+  .object({
+    image: z.any().optional(),
+    name: z.string().min(3, {
+      message: "Name must be at least 3 characters",
+    }),
+    email: z.email(),
+    password: z.string().min(6, { message: "Password must be 6 character" }),
+    confirmPassword: z
+      .string()
+      .min(6, { message: "Confirm Password should match the password" }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 const Page = () => {
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const register = useRegister();
+
   const router = useRouter();
 
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      age: "",
+      image: undefined,
+      name: "",
       email: "",
-      phone: "",
-      address: "",
       password: "",
+      confirmPassword: "",
     },
   });
 
-  const onSubmit = async (data) => {
-    const { firstName, lastName, age, email, phone, address, password } = data;
-    try {
-      const res = await axios.post(`${baseURL}/api/auth/signup`, {
-        firstName: firstName,
-        lastName: lastName,
-        password: password,
-        age: age,
-        email: email,
-        phone: phone,
-        address: address,
-      });
-      toast.success("User Created");
-      router.push("/login");
-      form.reset();
-    } catch (error) {
-      if (error) {
-        toast.error("User already exist");
+  const onDrop = useCallback(
+    (acceptedFiles) => {
+      if (acceptedFiles?.length > 0) {
+        const file = acceptedFiles[0];
+
+        //Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error("File too large");
+        }
+
+        // Set image and preview
+        setImageFile(file);
+        form.setValue("image", file);
+
+        // Preview URL
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result);
+        };
+        reader.readAsDataURL(file);
       }
+    },
+    [form],
+  );
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "image/jpeg": [".jpg", ".jpeg"],
+      "image/png": [".png"],
+      "image/webp": [".webp"],
+    },
+    maxFiles: 1,
+    multiple: false,
+  });
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    form.setValue("profilePhoto", undefined);
+  };
+
+  const onSubmit = async (data) => {
+    const formData = new FormData();
+    formData.append("name", data.name);
+    formData.append("email", data.email);
+    formData.append("password", data.password);
+
+    if (imageFile) {
+      formData.append("profilePhoto", imageFile);
     }
+
+    register.mutate(formData, {
+      onSuccess: () => {
+        form.reset();
+        setImageFile(null);
+        setImagePreview(null);
+      },
+    });
   };
 
   const onError = (errors) => {
@@ -94,53 +130,76 @@ const Page = () => {
           onSubmit={form.handleSubmit(onSubmit, onError)}
           className="space-y-4"
         >
+          {/* Image */}
           <FormField
             control={form.control}
-            name="firstName"
+            name="image"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>First Name</FormLabel>
+                <FormLabel>Profile Photo</FormLabel>
                 <FormControl>
-                  <Input placeholder="First Name" {...field} />
+                  {!imagePreview ? (
+                    <div
+                      {...getRootProps()}
+                      className={cn(
+                        "border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-colors",
+                        isDragActive
+                          ? "border-emerald-500 bg-emerald-50"
+                          : "border-slate-300 bg-slate-50 hover:border-emerald-400 hover:bg-emerald-50",
+                      )}
+                    >
+                      <input {...getInputProps()} />
+                      <Camera className="mx-auto h-10 w-10 text-slate-400 mb-2" />
+                      <p className="text-sm text-slate-600 font-medium">
+                        {isDragActive
+                          ? "Drop image here"
+                          : "Click or drag to upload"}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        JPG, PNG, WEBP (max 5MB)
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="relative rounded-md overflow-hidden border-2 border-slate-200">
+                      <Image
+                        src={imagePreview}
+                        alt="Profile preview"
+                        width={400}
+                        height={400}
+                        className="w-full object-contain h-56"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full transition-colors"
+                        aria-label="Remove image"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
+          {/* Name */}
           <FormField
             control={form.control}
-            name="lastName"
+            name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Last Name</FormLabel>
+                <FormLabel> Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="Last Name" {...field} />
+                  <Input placeholder="Name" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="age"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Age</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Age"
-                    value={field.value ?? ""}
-                    onChange={(e) => field.onChange(e.target.value)}
-                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Email */}
           <FormField
             control={form.control}
             name="email"
@@ -154,41 +213,8 @@ const Page = () => {
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="phone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Phone Number</FormLabel>
-                <FormControl className="h-10">
-                  <div className="phone-wrapper">
-                    <PhoneInput
-                      defaultCountry="BD"
-                      value={field.value}
-                      onChange={field.onChange}
-                      className="flex h-10 w-full rounded-md border border-input bg-background  pl-4 text-sm shadow-sm transition-colors
-                     focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
-          <FormField
-            control={form.control}
-            name="address"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Address</FormLabel>
-                <FormControl>
-                  <Input name="email" {...field} placeholder="address" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Password */}
           <FormField
             control={form.control}
             name="password"
@@ -202,6 +228,26 @@ const Page = () => {
               </FormItem>
             )}
           />
+
+          {/* Confirm password */}
+          <FormField
+            control={form.control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input
+                    name="confirmPassword"
+                    {...field}
+                    placeholder="confirmPassword"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <Button type="submit">Submit</Button>
         </form>
       </Form>

@@ -1,11 +1,4 @@
 "use client";
-import { useRouter } from "next/navigation";
-import axios from "axios";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Input } from "@/components/ui/input";
-import { useForm } from "react-hook-form";
-import "react-phone-number-input/style.css";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -15,8 +8,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { baseURL } from "@/lib/secrets";
-import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { useLogin } from "@/hooks/mutations/useLogin";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import "react-phone-number-input/style.css";
+import { z } from "zod";
 
 const formSchema = z.object({
   email: z.email(),
@@ -24,7 +21,7 @@ const formSchema = z.object({
 });
 
 const Page = () => {
-  const router = useRouter();
+  const login = useLogin();
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -34,25 +31,8 @@ const Page = () => {
     },
   });
 
-  const onSubmit = async (data) => {
-    const { email, password } = data;
-    try {
-      const res = await axios.post(`${baseURL}/api/auth/login`, {
-        email: email,
-        password: password,
-      });
-      const accessToken = res.data.accessToken;
-      if (!accessToken) {
-        toast.error("No Token recieved");
-        throw new Error("No token received");
-      }
-      localStorage.setItem("token", accessToken);
-      router.push("/");
-      form.reset();
-      toast.success("Successfully Logged In");
-    } catch (error) {
-      toast.error("Invalid Email or password");
-    }
+  const onSubmit = (data) => {
+    login.mutate(data);
   };
 
   const onError = (errors) => {
