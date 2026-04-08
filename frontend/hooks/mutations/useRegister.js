@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import api from "@/app/services/api";
+import api from "@/services/api";
 import { toast } from "sonner";
 
 const registerUser = async ({ formData }) => {

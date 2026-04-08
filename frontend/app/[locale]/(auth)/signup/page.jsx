@@ -44,8 +44,6 @@ const Page = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const register = useRegister();
 
-  const router = useRouter();
-
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {

@@ -1,5 +1,5 @@
 "use client";
-import { getUserById, updateUser } from "@/app/services/nationalId.service";
+import { getUserById, updateUser } from "@/services/nationalId.service";
 import { Button } from "@/components/ui/button";
 import {
   Form,

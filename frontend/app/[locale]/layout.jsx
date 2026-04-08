@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { TansStackProvider } from "@/components/providers/tanstack-providers";
+import { AuthProvider } from "../providers/AuthProviders";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +34,9 @@ export default async function RootLayout({ children, params }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextIntlClientProvider>
-          <TansStackProvider>{children}</TansStackProvider>
+          <TansStackProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </TansStackProvider>
         </NextIntlClientProvider>
         <Toaster />
       </body>

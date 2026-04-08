@@ -2,7 +2,7 @@
 import React from "react";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { deleteUser, getNationalId } from "@/app/services/nationalId.service";
+import { deleteUser, getNationalId } from "@/services/nationalId.service";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";

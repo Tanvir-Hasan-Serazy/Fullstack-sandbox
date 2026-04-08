@@ -2,7 +2,7 @@
 import React from "react";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { getUserById } from "@/app/services/nationalId.service";
+import { getUserById } from "@/services/nationalId.service";
 import Image from "next/image";
 import { format } from "date-fns";
 
