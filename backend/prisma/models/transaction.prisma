@@ -1,0 +1,52 @@
+model Transaction {
+    id     String @id @default(cuid())
+    userId String
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    // Order Data
+    amount   Decimal @db.Decimal(10, 2)
+    currency String  @default("BDT")
+    status   String  @default("pending")
+
+    // Amarpay specific
+    amarpayTranId       String?
+    amarpayPgTranId     String?
+    amarpayPayStatus    String
+    amarpayResponseData Json?
+
+    // Payment details
+    paymentMethod String?
+    bankTxn       String?
+    serviceCharge Decimal? @db.Decimal(10, 2)
+    storeAmount   Decimal?
+
+    //  Customer Info
+    customerName    String
+    customerEmail   String
+    customerPhone   String
+    customerAddress String
+    customerCity    String
+    customerCountry String
+
+    // Metadata
+    description        String
+    items              TransactionItems[]
+    createdAt          DateTime           @default(now())
+    updatedAt          DateTime           @updatedAt
+    paymentCompletedAt DateTime?
+
+    @@map("transaction")
+}
+
+model TransactionItems {
+    id            String      @id @default(cuid())
+    transactionId String
+    transaction   Transaction @relation(fields: [transactionId], references: [id])
+    productId     String
+    product       Products    @relation(fields: [productId], references: [id], onDelete: Cascade)
+    quantity      Int
+    unitPrice     Decimal     @db.Decimal(10, 2)
+    totalPrice    Decimal     @db.Decimal(10, 2)
+
+    @@map("transaction_items")
+}
