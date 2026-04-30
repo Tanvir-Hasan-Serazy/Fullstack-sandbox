@@ -35,4 +35,3 @@ model NationalID {
 
   @@map("nationalId")
 }
-

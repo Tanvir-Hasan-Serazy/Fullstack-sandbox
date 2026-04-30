@@ -171,6 +171,38 @@ export const validatePaymentResponse = (responseData) => {
   return true;
 };
 
+export const verifyTransactionAmount = (originalAmount, responseData) => {
+  if (!responseData || typeof responseData !== "object") {
+    console.error(
+      "verifyTransactionAmount: responseData is null or not an object",
+    );
+    return false;
+  }
+
+  if (!responseData.amount) {
+    console.error("verifyTransactionAmount: Response does not contain amount");
+    return false;
+  }
+
+  if (originalAmount === undefined || originalAmount === null) {
+    console.error("verifyTransactionAmount: Original amount is missing");
+    return false;
+  }
+
+  // Convert both amounts to strings and normalize to 2 decimal places for comparison
+  const original = parseFloat(originalAmount).toFixed(2);
+  const response = parseFloat(responseData.amount).toFixed(2);
+
+  if (original !== response) {
+    console.error(
+      `verifyTransactionAmount: Amount mismatch. Expected: ${original}, Received: ${response}`,
+    );
+    return false;
+  }
+
+  return true;
+};
+
 export const mapAamarpayResponseToTransaction = (responseData) => {
   const statusMap = {
     [AAMARPAY_STATUS.SUCCESS]: "completed",
@@ -216,4 +248,23 @@ export const mapAamarpayResponseToTransaction = (responseData) => {
 
     updatedAt: now,
   };
+};
+
+export const extractMerchantTransactionId = (responseData) => {
+  if (!responseData || typeof responseData !== "object") {
+    console.error(
+      "extractMerchantTransactionId: responseData is null or not an object",
+    );
+    return null;
+  }
+
+  const merTxnId = responseData.mer_txnid || null;
+
+  if (!merTxnId) {
+    console.warn(
+      "extractMerchantTransactionId: mer_txnid not found in response",
+    );
+  }
+
+  return merTxnId;
 };
